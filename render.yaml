@@ -1,0 +1,16 @@
+services:
+  - type: worker
+    name: quos-university
+    runtime: python
+    region: singapore
+    buildCommand: pip install requests
+    startCommand: python main.py
+    envVars:
+      - key: GEMINI_KEY
+        sync: false
+      - key: CLAUDE_KEY
+        sync: false
+      - key: DEEPSEEK_KEY
+        sync: false
+      - key: CHATGPT_KEY
+        sync: false
