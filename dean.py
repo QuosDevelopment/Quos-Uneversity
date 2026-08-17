@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from teachers import ask_groq
+import logging
+import os
+import time
+
+from teachers import ask_deepseek, ask_groq
 
 
 def merge_answers(question: str, teacher_answers: dict[str, str]) -> str:
@@ -9,16 +13,18 @@ def merge_answers(question: str, teacher_answers: dict[str, str]) -> str:
     for provider, answer in teacher_answers.items():
         perspectives.append(f"--- {provider} teacher ---\n{answer.strip()}")
     joined_perspectives = "\n\n".join(perspectives)
+    perspective_count = len(teacher_answers)
+    perspective_label = "perspective" if perspective_count == 1 else "perspectives"
     prompt = f"""You are the Dean of QUOS University.
 
 Question:
 {question}
 
-Three independent teachers offered these perspectives:
+{perspective_count} independent teacher {perspective_label} offered the following:
 {joined_perspectives}
 
-Compare the perspectives, identify agreement and disagreement, correct weak or
-unsupported reasoning, and synthesize the strongest ideas into one original
+Compare the available perspective(s), identify agreement and disagreement when
+possible, correct weak or unsupported reasoning, and synthesize the strongest ideas into one original
 answer. Do not mention the providers, teachers, or this synthesis process. The
 response must be self-contained and practical. Use this structure:
 
@@ -29,4 +35,19 @@ response must be self-contained and practical. Use this structure:
 
 Write in clear, humane language. Avoid generic motivational clichés. Keep it
 between 300 and 700 words."""
-    return ask_groq(prompt, system_instruction="You are the discerning Dean of QUOS University. Compare multiple expert perspectives before writing one accurate, useful lesson.")
+    system_instruction = "You are the discerning Dean of QUOS University. Compare the available expert perspective(s) before writing one accurate, useful lesson."
+    delay = float(os.getenv("RESPONSE_DELAY_SECONDS", "3"))
+    try:
+        return ask_groq(prompt, system_instruction=system_instruction)
+    except Exception as groq_error:  # noqa: BLE001 - use DeepSeek when Groq is unavailable
+        logging.warning("Groq Dean unavailable; falling back to DeepSeek Dean", exc_info=True)
+        if delay > 0:
+            time.sleep(delay)
+        try:
+            return ask_deepseek(prompt, system_instruction=system_instruction)
+        except Exception as deepseek_error:  # noqa: BLE001 - surface both failures to the worker
+            if delay > 0:
+                time.sleep(delay)
+            raise RuntimeError(
+                f"Both Dean providers failed: Groq: {groq_error}; DeepSeek: {deepseek_error}"
+            ) from deepseek_error

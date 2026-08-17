@@ -160,26 +160,44 @@ TEACHER_SPECS = (
 def run_once() -> str:
     question = generate_question()
     logging.info("New QUOS question for DeepSeek and Groq: %s", question)
-    write_status(state="asking_teachers", question=question, teachers_completed=[])
+    write_status(
+        state="asking_teachers",
+        question=question,
+        teachers_completed=[],
+        provider_errors={},
+    )
 
     teacher_answers: dict[str, str] = {}
+    provider_errors: dict[str, str] = {}
     for provider, ask_teacher in TEACHER_SPECS:
         logging.info("Asking %s teacher", provider)
-        teacher_answers[provider] = ask_teacher(question, system_instruction=TEACHER_SYSTEM)
-        _pause_after_response(f"{provider} teacher")
+        try:
+            teacher_answers[provider] = ask_teacher(question, system_instruction=TEACHER_SYSTEM)
+            logging.info("%s teacher completed", provider)
+        except Exception as exc:  # noqa: BLE001 - one provider must not stop the cycle
+            provider_errors[provider] = str(exc)
+            logging.warning("%s teacher unavailable; continuing with available providers", provider, exc_info=True)
+        finally:
+            _pause_after_response(f"{provider} teacher attempt")
         write_status(
             state="asking_teachers",
             question=question,
             teachers_completed=list(teacher_answers),
+            provider_errors=provider_errors,
         )
+
+    if not teacher_answers:
+        failures = "; ".join(f"{provider}: {error}" for provider, error in provider_errors.items())
+        raise RuntimeError(f"All teacher providers failed: {failures}")
 
     write_status(
         state="dean_synthesis",
         question=question,
         teachers_completed=list(teacher_answers),
+        provider_errors=provider_errors,
     )
     final_answer = merge_answers(question, teacher_answers)
-    _pause_after_response("Groq Dean")
+    _pause_after_response("Dean")
     save_training_example(question, final_answer)
     write_status(
         state="idle",
@@ -187,6 +205,7 @@ def run_once() -> str:
         last_answer=final_answer,
         last_completed_at=_utc_now(),
         teachers_completed=list(teacher_answers),
+        provider_errors=provider_errors,
     )
     return final_answer
 
