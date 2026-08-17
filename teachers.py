@@ -47,7 +47,7 @@ def _require_key(name: str) -> str:
 def ask_groq(prompt: str, *, system_instruction: str | None = None) -> str:
     """Ask Groq through its OpenAI-compatible chat-completions endpoint."""
     api_key = _require_key("GROQ_API_KEY")
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     messages: list[dict[str, str]] = []
     if system_instruction:
         messages.append({"role": "system", "content": system_instruction})

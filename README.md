@@ -1,6 +1,6 @@
 # QUOS University
 
-**QUOS University** is a self-learning AI worker for deep reflection on habits, money psychology, and personal growth. Every 120 seconds it selects a question, asks **Groq** for a rigorous teacher perspective, gives that perspective to a Groq-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
+**QUOS University** is a universal self-learning AI worker. Every 120 seconds it selects a question from a broad curriculum spanning computer science, mathematics, physics, history, geography, art, design, music, dance, food, nutrition, philosophy, ethics, biology, medicine, literature, language, sports, fitness, economics, finance, habits, money psychology, and personal growth. It asks **Groq** for a rigorous teacher perspective, gives that perspective to a Groq-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
 
 > **QUOS principle:** One deep question. One Groq perspective. One lesson worth keeping.
 
@@ -16,6 +16,10 @@
 | `service.py` | Runs the worker in a background thread while exposing the preview page, making a public web URL possible on Render. |
 
 A cycle is written only after both Groq calls and the Dean synthesis succeed. The worker waits three seconds after each Groq response to reduce burst pressure and rate-limit risk. Failed cycles remain visible in status and logs and do not create partial training examples.
+
+## Curriculum
+
+The question selector samples from twelve knowledge domains: **Computer Science & Programming; Mathematics; Physics; History & Geography; Art & Design; Music & Dance; Food & Nutrition; Philosophy & Ethics; Biology & Medicine; Literature & Language; Sports & Fitness; and Economics & Finance**. The original habits, money psychology, and personal growth questions remain in the bank so QUOS can connect technical, scientific, creative, cultural, health, and personal-development ideas in one training dataset.
 
 ## Run locally
 
@@ -47,7 +51,7 @@ Then open `http://localhost:8000`. The worker writes `status.json` and `training
 | Variable | Purpose |
 | --- | --- |
 | `GROQ_API_KEY` | Groq API key used by the teacher and Dean. |
-| `GROQ_MODEL` | Optional Groq model override; defaults to `llama-3.3-70b-versatile`. |
+| `GROQ_MODEL` | Optional Groq model override; defaults to `openai/gpt-oss-120b`. |
 | `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `120` seconds. |
 | `RESPONSE_DELAY_SECONDS` | Delay after each Groq teacher and Dean response; defaults to `3` seconds. |
 | `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Groq requests. |
@@ -63,7 +67,7 @@ Never commit a real `.env` file or API key.
 Each completed lesson is appended as one line to `training_data.jsonl`:
 
 ```json
-{"input":"What hidden reward keeps a person repeating a habit they say they want to change, and how can they redesign that reward without relying on willpower?","output":"1. Core insight..."}
+{"input":"How should a Python programmer choose between a list, tuple, set, and dictionary when designing a data pipeline, and what trade-offs matter most?","output":"1. Core insight..."}
 ```
 
 The file is JSONL rather than one large JSON array so new examples can be appended safely and consumed incrementally by later training or evaluation pipelines.
