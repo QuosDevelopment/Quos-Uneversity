@@ -7,8 +7,10 @@ services:
     startCommand: python service.py
     healthCheckPath: /health
     envVars:
-      - key: GEMINI_KEY
+      - key: GROQ_API_KEY
         sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
       - key: LOOP_INTERVAL_SECONDS
         value: "120"
       - key: RESPONSE_DELAY_SECONDS

@@ -1,20 +1,20 @@
-"""Gemini-backed Dean synthesis for QUOS University."""
+"""Groq-backed Dean synthesis for QUOS University."""
 
 from __future__ import annotations
 
-from teachers import ask_gemini
+from teachers import ask_groq
 
 
-def merge_answers(question: str, gemini_answer: str) -> str:
-    """Use Gemini as the Dean to refine one teacher response into a lesson."""
+def merge_answers(question: str, groq_answer: str) -> str:
+    """Use Groq as the Dean to refine one teacher response into a lesson."""
     prompt = f"""You are the Dean of QUOS University.
 
 Question:
 {question}
 
-A Gemini teacher offered this initial perspective:
---- Gemini teacher ---
-{gemini_answer.strip()}
+A Groq teacher offered this initial perspective:
+--- Groq teacher ---
+{groq_answer.strip()}
 
 Create one powerful, original final answer. Deepen and sharpen the strongest
 ideas, correct weak reasoning, and do not mention the teacher or this synthesis
@@ -27,4 +27,4 @@ process. The response should be self-contained and practical. Use this structure
 
 Write in clear, humane language. Avoid generic motivational clichés. Keep it
 between 300 and 700 words."""
-    return ask_gemini(prompt, system_instruction="You are the discerning Dean of QUOS University.")
+    return ask_groq(prompt, system_instruction="You are the discerning Dean of QUOS University.")

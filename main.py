@@ -1,7 +1,7 @@
 """QUOS University self-learning worker.
 
 Run once with ``python main.py --once`` for a smoke test, or without arguments
-for the recurring 120-second background loop.
+for the recurring 120-second background loop using Groq.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from typing import Any
 
 from dean import merge_answers
 from saver import ensure_data_file, save_training_example
-from teachers import ask_gemini
+from teachers import ask_groq
 
 
 INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "120"))
@@ -77,12 +77,12 @@ def _pause_after_response(label: str) -> None:
         _stop_event.wait(RESPONSE_DELAY_SECONDS)
 
 
-def ask_gemini_teacher(question: str) -> str:
-    """Ask Gemini for the one teacher perspective used by this cycle."""
-    return ask_gemini(
+def ask_groq_teacher(question: str) -> str:
+    """Ask Groq for the one teacher perspective used by this cycle."""
+    return ask_groq(
         question,
         system_instruction=(
-            "You are the sole teacher at QUOS University. Explore habits, money "
+            "You are the sole Groq teacher at QUOS University. Explore habits, money "
             "psychology, and personal growth with rigorous, humane, original insight. "
             "Prefer practical reasoning over generic motivation."
         ),
@@ -92,20 +92,20 @@ def ask_gemini_teacher(question: str) -> str:
 def run_once() -> str:
     question = generate_question()
     logging.info("New QUOS question: %s", question)
-    write_status(state="asking_gemini", question=question, teachers_completed=[])
+    write_status(state="asking_groq", question=question, teachers_completed=[])
 
-    gemini_answer = ask_gemini_teacher(question)
-    _pause_after_response("Gemini teacher")
-    write_status(state="dean_synthesis", question=question, teachers_completed=["Gemini"])
-    final_answer = merge_answers(question, gemini_answer)
-    _pause_after_response("Gemini Dean")
+    groq_answer = ask_groq_teacher(question)
+    _pause_after_response("Groq teacher")
+    write_status(state="dean_synthesis", question=question, teachers_completed=["Groq"])
+    final_answer = merge_answers(question, groq_answer)
+    _pause_after_response("Groq Dean")
     save_training_example(question, final_answer)
     write_status(
         state="idle",
         question=question,
         last_answer=final_answer,
         last_completed_at=_utc_now(),
-        teachers_completed=["Gemini"],
+        teachers_completed=["Groq"],
     )
     return final_answer
 
@@ -122,7 +122,7 @@ def run_forever() -> None:
         interval_seconds=INTERVAL_SECONDS,
         response_delay_seconds=RESPONSE_DELAY_SECONDS,
     )
-    logging.info("QUOS University Gemini-only worker started; interval=%ss", INTERVAL_SECONDS)
+    logging.info("QUOS University Groq worker started; interval=%ss", INTERVAL_SECONDS)
     while not _stop_event.is_set():
         cycle_started = time.monotonic()
         try:

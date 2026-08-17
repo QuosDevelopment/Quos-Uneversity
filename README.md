@@ -1,21 +1,21 @@
 # QUOS University
 
-**QUOS University** is a self-learning AI worker for deep reflection on habits, money psychology, and personal growth. Every 120 seconds it selects a question, asks **Gemini** for a rigorous teacher perspective, gives that perspective to a Gemini-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
+**QUOS University** is a self-learning AI worker for deep reflection on habits, money psychology, and personal growth. Every 120 seconds it selects a question, asks **Groq** for a rigorous teacher perspective, gives that perspective to a Groq-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
 
-> **QUOS principle:** One deep question. One Gemini perspective. One lesson worth keeping.
+> **QUOS principle:** One deep question. One Groq perspective. One lesson worth keeping.
 
 ## Architecture
 
 | Component | Responsibility |
 | --- | --- |
-| `main.py` | Generates the question, asks Gemini, runs the 120-second loop, writes status, saves lessons, and prints results. |
-| `teachers.py` | Calls Gemini through the Gemini `generateContent` HTTP API. |
-| `dean.py` | Sends the question and Gemini’s initial perspective back to Gemini for final synthesis. |
+| `main.py` | Generates the question, asks Groq, runs the 120-second loop, writes status, saves lessons, and prints results. |
+| `teachers.py` | Calls Groq through its OpenAI-compatible chat-completions API. |
+| `dean.py` | Sends the question and Groq’s initial perspective back to Groq for final synthesis. |
 | `saver.py` | Appends the required `{"input": "question", "output": "final_answer"}` JSON object to `training_data.jsonl`. |
 | `preview.py` | Serves a read-only QUOS-branded status page and health endpoint. |
 | `service.py` | Runs the worker in a background thread while exposing the preview page, making a public web URL possible on Render. |
 
-A cycle is written only after both Gemini calls and the Dean synthesis succeed. The worker waits three seconds after each Gemini response to reduce burst pressure and rate-limit risk. Failed cycles remain visible in status and logs and do not create partial training examples.
+A cycle is written only after both Groq calls and the Dean synthesis succeed. The worker waits three seconds after each Groq response to reduce burst pressure and rate-limit risk. Failed cycles remain visible in status and logs and do not create partial training examples.
 
 ## Run locally
 
@@ -24,7 +24,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-# Add GEMINI_KEY to .env
+# Add GROQ_API_KEY to .env
 python main.py --once
 ```
 
@@ -46,11 +46,11 @@ Then open `http://localhost:8000`. The worker writes `status.json` and `training
 
 | Variable | Purpose |
 | --- | --- |
-| `GEMINI_KEY` | Gemini API key used by the teacher and Dean. |
-| `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-3.6-flash`. |
+| `GROQ_API_KEY` | Groq API key used by the teacher and Dean. |
+| `GROQ_MODEL` | Optional Groq model override; defaults to `llama-3.3-70b-versatile`. |
 | `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `120` seconds. |
-| `RESPONSE_DELAY_SECONDS` | Delay after each Gemini teacher and Dean response; defaults to `3` seconds. |
-| `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Gemini requests. |
+| `RESPONSE_DELAY_SECONDS` | Delay after each Groq teacher and Dean response; defaults to `3` seconds. |
+| `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Groq requests. |
 | `HTTP_MAX_RETRIES` | Number of retries after transient request failures. |
 | `TRAINING_DATA_PATH` | JSONL output path. |
 | `STATUS_PATH` | Worker status path. |
@@ -70,26 +70,27 @@ The file is JSONL rather than one large JSON array so new examples can be append
 
 ## Deploy on Render
 
-The included `render.yaml` defines a Python web service that launches `service.py`. That process runs the QUOS Gemini-only worker continuously and exposes the branded preview at the service URL. This combined mode provides both the 120-second worker and the requested live preview.
+The included `render.yaml` defines a Python web service that launches `service.py`. That process runs the QUOS Groq worker continuously and exposes the branded preview at the service URL. This combined mode provides both the 120-second worker and the requested live preview.
 
 1. Put this folder in a Git repository and push it to GitHub or GitLab.
 2. In Render, create a new Blueprint and select the repository.
 3. Render detects `render.yaml` and creates the `quos-university` service.
-4. Add `GEMINI_KEY` when Render requests the unsynced secret.
+4. Add `GROQ_API_KEY` when Render requests the unsynced secret.
 5. Deploy and open the generated service URL. `/health` returns a machine-readable health response and `/api/status` returns the latest worker checkpoint.
 
 The deployed QUOS preview is available at <https://quos-university.onrender.com>.
 
 ## Replit alternative
 
-Create a Python Repl, upload the project files, add `GEMINI_KEY` through Replit Secrets, and run `python service.py`. Replit’s public web preview will show the QUOS status page. For continuous execution, use an always-on deployment option rather than a session that stops when the workspace is inactive.
+Create a Python Repl, upload the project files, add `GROQ_API_KEY` through Replit Secrets, and run `python service.py`. Replit’s public web preview will show the QUOS status page. For continuous execution, use an always-on deployment option rather than a session that stops when the workspace is inactive.
 
 ## Safety and quality notes
 
-The system produces educational content, not financial, medical, or legal advice. Review generated lessons before publishing them as formal curriculum. Keep the Gemini API key in server-side secret storage. Gemini model names are environment-configurable because provider availability can change over time.
+The system produces educational content, not financial, medical, or legal advice. Review generated lessons before publishing them as formal curriculum. Keep the Groq API key in server-side secret storage. Groq model names are environment-configurable because provider availability can change over time.
 
 ## References
 
-[1]: https://ai.google.dev/api/generate-content "Google Gemini API: Generate Content"
-[2]: https://render.com/docs/blueprint-spec "Render Blueprint YAML Reference"
-[3]: https://render.com/docs/free "Render Deploy for Free"
+[1]: https://console.groq.com/docs/openai "Groq OpenAI compatibility documentation"
+[2]: https://console.groq.com/docs/models "Groq model documentation"
+[3]: https://render.com/docs/blueprint-spec "Render Blueprint YAML Reference"
+[4]: https://render.com/docs/free "Render Deploy for Free"
