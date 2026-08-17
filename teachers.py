@@ -1,7 +1,7 @@
-"""QUOS University teacher integrations.
+"""Gemini teacher integration for QUOS University.
 
-Each function accepts a question and returns a plain-text answer. API keys are
-read only from environment variables; no credentials are stored in source.
+The worker intentionally uses one provider: Gemini. The API key is read only
+from the environment; no credential is stored in source.
 """
 
 from __future__ import annotations
@@ -41,16 +41,6 @@ def _require_key(name: str) -> str:
     return value
 
 
-def _extract_openai_text(data: dict[str, Any]) -> str:
-    try:
-        content = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError(f"Unexpected chat-completions response: {data}") from exc
-    if not isinstance(content, str) or not content.strip():
-        raise RuntimeError("Chat-completions response contained no text")
-    return content.strip()
-
-
 def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
     """Ask Gemini through the Gemini REST generateContent endpoint."""
     api_key = _require_key("GEMINI_KEY")
@@ -70,83 +60,3 @@ def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
     if not text.strip():
         raise RuntimeError("Gemini response contained no text")
     return text.strip()
-
-
-def ask_claude(question: str) -> str:
-    """Ask Claude through the Anthropic Messages API."""
-    api_key = _require_key("CLAUDE_KEY")
-    model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
-    payload = {
-        "model": model,
-        "max_tokens": 1200,
-        "temperature": 0.7,
-        "system": "You are a thoughtful teacher at QUOS University. Give practical, nuanced, original guidance.",
-        "messages": [{"role": "user", "content": question}],
-    }
-    data = _post_json(
-        "https://api.anthropic.com/v1/messages",
-        {
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        payload,
-    )
-    try:
-        blocks = data["content"]
-        text = "".join(block.get("text", "") for block in blocks if block.get("type") == "text")
-    except (KeyError, TypeError) as exc:
-        raise RuntimeError(f"Unexpected Claude response: {data}") from exc
-    if not text.strip():
-        raise RuntimeError("Claude response contained no text")
-    return text.strip()
-
-
-def ask_deepseek(question: str) -> str:
-    """Ask DeepSeek through its OpenAI-compatible chat-completions API."""
-    api_key = _require_key("DEEPSEEK_KEY")
-    model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
-    payload = {
-        "model": model,
-        "temperature": 0.7,
-        "max_tokens": 1200,
-        "messages": [
-            {"role": "system", "content": "You are a rigorous QUOS University teacher of habits, money psychology, and personal growth."},
-            {"role": "user", "content": question},
-        ],
-    }
-    data = _post_json(
-        "https://api.deepseek.com/chat/completions",
-        {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-        payload,
-    )
-    return _extract_openai_text(data)
-
-
-def ask_chatgpt(question: str) -> str:
-    """Ask ChatGPT through the OpenAI-compatible chat-completions API."""
-    api_key = _require_key("CHATGPT_KEY")
-    model = os.getenv("CHATGPT_MODEL", "gpt-4.1-mini")
-    payload = {
-        "model": model,
-        "temperature": 0.7,
-        "max_tokens": 1200,
-        "messages": [
-            {"role": "system", "content": "You are a clear, compassionate QUOS University teacher. Prefer actionable insight over platitudes."},
-            {"role": "user", "content": question},
-        ],
-    }
-    data = _post_json(
-        os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/") + "/chat/completions",
-        {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
-        payload,
-    )
-    return _extract_openai_text(data)
-
-
-TEACHERS = {
-    "Gemini": ask_gemini,
-    "Claude": ask_claude,
-    "DeepSeek": ask_deepseek,
-    "ChatGPT": ask_chatgpt,
-}

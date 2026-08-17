@@ -13,14 +13,13 @@ import os
 import signal
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from dean import merge_answers
 from saver import ensure_data_file, save_training_example
-from teachers import TEACHERS
+from teachers import ask_gemini
 
 
 INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "300"))
@@ -70,38 +69,33 @@ def generate_question() -> str:
     return question
 
 
-def ask_all_teachers(question: str) -> dict[str, str]:
-    """Call all four teachers concurrently and fail the cycle if any fails."""
-    answers: dict[str, str] = {}
-    errors: dict[str, str] = {}
-    with ThreadPoolExecutor(max_workers=len(TEACHERS), thread_name_prefix="teacher") as pool:
-        futures = {pool.submit(function, question): name for name, function in TEACHERS.items()}
-        for future in as_completed(futures):
-            name = futures[future]
-            try:
-                answers[name] = future.result()
-            except Exception as exc:  # noqa: BLE001 - one failed teacher is a cycle failure
-                errors[name] = str(exc)
-    if errors:
-        raise RuntimeError(f"Teacher failures: {errors}")
-    return {name: answers[name] for name in TEACHERS}
+def ask_gemini_teacher(question: str) -> str:
+    """Ask Gemini for the one teacher perspective used by this cycle."""
+    return ask_gemini(
+        question,
+        system_instruction=(
+            "You are the sole teacher at QUOS University. Explore habits, money "
+            "psychology, and personal growth with rigorous, humane, original insight. "
+            "Prefer practical reasoning over generic motivation."
+        ),
+    )
 
 
 def run_once() -> str:
     question = generate_question()
     logging.info("New QUOS question: %s", question)
-    write_status(state="asking_teachers", question=question)
+    write_status(state="asking_gemini", question=question, teachers_completed=[])
 
-    answers = ask_all_teachers(question)
-    write_status(state="dean_synthesis", question=question, teachers_completed=list(answers))
-    final_answer = merge_answers(question, answers)
+    gemini_answer = ask_gemini_teacher(question)
+    write_status(state="dean_synthesis", question=question, teachers_completed=["Gemini"])
+    final_answer = merge_answers(question, gemini_answer)
     save_training_example(question, final_answer)
     write_status(
         state="idle",
         question=question,
         last_answer=final_answer,
         last_completed_at=_utc_now(),
-        teachers_completed=list(answers),
+        teachers_completed=["Gemini"],
     )
     return final_answer
 
@@ -114,7 +108,7 @@ def _handle_signal(signum: int, _frame: Any) -> None:
 def run_forever() -> None:
     ensure_data_file()
     write_status(state="starting", interval_seconds=INTERVAL_SECONDS)
-    logging.info("QUOS University worker started; interval=%ss", INTERVAL_SECONDS)
+    logging.info("QUOS University Gemini-only worker started; interval=%ss", INTERVAL_SECONDS)
     while not _stop_event.is_set():
         cycle_started = time.monotonic()
         try:

@@ -9,12 +9,6 @@ services:
     envVars:
       - key: GEMINI_KEY
         sync: false
-      - key: CLAUDE_KEY
-        sync: false
-      - key: DEEPSEEK_KEY
-        sync: false
-      - key: CHATGPT_KEY
-        sync: false
       - key: LOOP_INTERVAL_SECONDS
         value: "300"
       - key: TRAINING_DATA_PATH

@@ -1,25 +1,23 @@
-"""Dean synthesis for QUOS University."""
+"""Gemini-backed Dean synthesis for QUOS University."""
 
 from __future__ import annotations
 
 from teachers import ask_gemini
 
 
-def merge_answers(question: str, answers: dict[str, str]) -> str:
-    """Merge teacher answers into one clear, useful, original lesson."""
-    teacher_packet = "\n\n".join(
-        f"--- {teacher} ---\n{answer.strip()}" for teacher, answer in answers.items()
-    )
+def merge_answers(question: str, gemini_answer: str) -> str:
+    """Use Gemini as the Dean to refine one teacher response into a lesson."""
     prompt = f"""You are the Dean of QUOS University.
 
 Question:
 {question}
 
-Four teachers answered the question:
-{teacher_packet}
+A Gemini teacher offered this initial perspective:
+--- Gemini teacher ---
+{gemini_answer.strip()}
 
-Create one powerful, original final answer. Synthesize the strongest insights,
-resolve contradictions, and do not mention the teachers or this synthesis
+Create one powerful, original final answer. Deepen and sharpen the strongest
+ideas, correct weak reasoning, and do not mention the teacher or this synthesis
 process. The response should be self-contained and practical. Use this structure:
 
 1. Core insight
