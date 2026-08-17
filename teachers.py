@@ -44,7 +44,7 @@ def _require_key(name: str) -> str:
 def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
     """Ask Gemini through the Gemini REST generateContent endpoint."""
     api_key = _require_key("GEMINI_KEY")
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     prompt = question if not system_instruction else f"{system_instruction}\n\nUser task:\n{question}"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
