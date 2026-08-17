@@ -47,7 +47,7 @@ Then open `http://localhost:8000`. The worker writes `status.json` and `training
 | Variable | Purpose |
 | --- | --- |
 | `GEMINI_KEY` | Gemini API key used by the teacher and Dean. |
-| `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-3.7-flash`. |
+| `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-2.5-flash`. |
 | `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `300` seconds. |
 | `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Gemini requests. |
 | `HTTP_MAX_RETRIES` | Number of retries after transient request failures. |

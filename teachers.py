@@ -30,7 +30,7 @@ def _post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> di
         except (requests.RequestException, RuntimeError, ValueError) as exc:
             last_error = exc
             if attempt < MAX_RETRIES:
-                time.sleep(2**attempt)
+                time.sleep(min(30, 4**attempt))
     raise RuntimeError(f"Request failed after retries: {last_error}") from last_error
 
 
@@ -44,7 +44,7 @@ def _require_key(name: str) -> str:
 def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
     """Ask Gemini through the Gemini REST generateContent endpoint."""
     api_key = _require_key("GEMINI_KEY")
-    model = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     prompt = question if not system_instruction else f"{system_instruction}\n\nUser task:\n{question}"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
