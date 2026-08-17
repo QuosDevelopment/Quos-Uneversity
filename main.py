@@ -1,7 +1,7 @@
 """QUOS University self-learning worker.
 
 Run once with ``python main.py --once`` for a smoke test, or without arguments
-for the recurring 120-second background loop using Groq.
+for the recurring 120-second background loop using Gemini, DeepSeek, Groq, and a Groq Dean.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from typing import Any
 
 from dean import merge_answers
 from saver import ensure_data_file, save_training_example
-from teachers import ask_groq
+from teachers import ask_deepseek, ask_gemini, ask_groq
 
 
 INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "120"))
@@ -142,30 +142,44 @@ def _pause_after_response(label: str) -> None:
         _stop_event.wait(RESPONSE_DELAY_SECONDS)
 
 
-def ask_groq_teacher(question: str) -> str:
-    """Ask Groq for the one teacher perspective used by this cycle."""
-    return ask_groq(
-        question,
-        system_instruction=(
-            "You are the sole Groq teacher at QUOS University. Explore the full "
-            "curriculum across computer science, mathematics, physics, history, geography, "
-            "art, design, music, dance, food, nutrition, philosophy, ethics, biology, "
-            "medicine, literature, language, sports, fitness, economics, and finance. "
-            "Use rigorous, humane, original insight and prefer practical reasoning over "
-            "generic summaries or motivation."
-        ),
-    )
+TEACHER_SYSTEM = (
+    "You are an independent teacher at QUOS University. Explore the full curriculum "
+    "across computer science, mathematics, physics, history, geography, art, design, "
+    "music, dance, food, nutrition, philosophy, ethics, biology, medicine, literature, "
+    "language, sports, fitness, economics, finance, habits, money psychology, and "
+    "personal growth. Use rigorous, humane, original insight and prefer practical "
+    "reasoning over generic summaries or motivation."
+)
+
+TEACHER_SPECS = (
+    ("Gemini", ask_gemini),
+    ("DeepSeek", ask_deepseek),
+    ("Groq", ask_groq),
+)
 
 
 def run_once() -> str:
     question = generate_question()
-    logging.info("New QUOS question: %s", question)
-    write_status(state="asking_groq", question=question, teachers_completed=[])
+    logging.info("New QUOS question for Gemini, DeepSeek, and Groq: %s", question)
+    write_status(state="asking_teachers", question=question, teachers_completed=[])
 
-    groq_answer = ask_groq_teacher(question)
-    _pause_after_response("Groq teacher")
-    write_status(state="dean_synthesis", question=question, teachers_completed=["Groq"])
-    final_answer = merge_answers(question, groq_answer)
+    teacher_answers: dict[str, str] = {}
+    for provider, ask_teacher in TEACHER_SPECS:
+        logging.info("Asking %s teacher", provider)
+        teacher_answers[provider] = ask_teacher(question, system_instruction=TEACHER_SYSTEM)
+        _pause_after_response(f"{provider} teacher")
+        write_status(
+            state="asking_teachers",
+            question=question,
+            teachers_completed=list(teacher_answers),
+        )
+
+    write_status(
+        state="dean_synthesis",
+        question=question,
+        teachers_completed=list(teacher_answers),
+    )
+    final_answer = merge_answers(question, teacher_answers)
     _pause_after_response("Groq Dean")
     save_training_example(question, final_answer)
     write_status(
@@ -173,7 +187,7 @@ def run_once() -> str:
         question=question,
         last_answer=final_answer,
         last_completed_at=_utc_now(),
-        teachers_completed=["Groq"],
+        teachers_completed=list(teacher_answers),
     )
     return final_answer
 
@@ -190,7 +204,7 @@ def run_forever() -> None:
         interval_seconds=INTERVAL_SECONDS,
         response_delay_seconds=RESPONSE_DELAY_SECONDS,
     )
-    logging.info("QUOS University Groq worker started; interval=%ss", INTERVAL_SECONDS)
+    logging.info("QUOS University multi-teacher worker started; interval=%ss", INTERVAL_SECONDS)
     while not _stop_event.is_set():
         cycle_started = time.monotonic()
         try:
