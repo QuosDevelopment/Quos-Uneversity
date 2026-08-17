@@ -10,7 +10,7 @@ services:
       - key: GEMINI_KEY
         sync: false
       - key: LOOP_INTERVAL_SECONDS
-        value: "30"
+        value: "120"
       - key: RESPONSE_DELAY_SECONDS
         value: "3"
       - key: TRAINING_DATA_PATH

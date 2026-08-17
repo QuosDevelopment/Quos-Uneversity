@@ -1,6 +1,6 @@
 # QUOS University
 
-**QUOS University** is a self-learning AI worker for deep reflection on habits, money psychology, and personal growth. Every 30 seconds it selects a question, asks **Gemini** for a rigorous teacher perspective, gives that perspective to a Gemini-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
+**QUOS University** is a self-learning AI worker for deep reflection on habits, money psychology, and personal growth. Every 120 seconds it selects a question, asks **Gemini** for a rigorous teacher perspective, gives that perspective to a Gemini-powered **Dean**, saves the Dean’s original lesson to `training_data.jsonl`, and prints the result to the console.
 
 > **QUOS principle:** One deep question. One Gemini perspective. One lesson worth keeping.
 
@@ -8,7 +8,7 @@
 
 | Component | Responsibility |
 | --- | --- |
-| `main.py` | Generates the question, asks Gemini, runs the 30-second loop, writes status, saves lessons, and prints results. |
+| `main.py` | Generates the question, asks Gemini, runs the 120-second loop, writes status, saves lessons, and prints results. |
 | `teachers.py` | Calls Gemini through the Gemini `generateContent` HTTP API. |
 | `dean.py` | Sends the question and Gemini’s initial perspective back to Gemini for final synthesis. |
 | `saver.py` | Appends the required `{"input": "question", "output": "final_answer"}` JSON object to `training_data.jsonl`. |
@@ -48,7 +48,7 @@ Then open `http://localhost:8000`. The worker writes `status.json` and `training
 | --- | --- |
 | `GEMINI_KEY` | Gemini API key used by the teacher and Dean. |
 | `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-3.6-flash`. |
-| `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `30` seconds. |
+| `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `120` seconds. |
 | `RESPONSE_DELAY_SECONDS` | Delay after each Gemini teacher and Dean response; defaults to `3` seconds. |
 | `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Gemini requests. |
 | `HTTP_MAX_RETRIES` | Number of retries after transient request failures. |
@@ -70,7 +70,7 @@ The file is JSONL rather than one large JSON array so new examples can be append
 
 ## Deploy on Render
 
-The included `render.yaml` defines a Python web service that launches `service.py`. That process runs the QUOS Gemini-only worker continuously and exposes the branded preview at the service URL. This combined mode provides both the 30-second worker and the requested live preview.
+The included `render.yaml` defines a Python web service that launches `service.py`. That process runs the QUOS Gemini-only worker continuously and exposes the branded preview at the service URL. This combined mode provides both the 120-second worker and the requested live preview.
 
 1. Put this folder in a Git repository and push it to GitHub or GitLab.
 2. In Render, create a new Blueprint and select the repository.
