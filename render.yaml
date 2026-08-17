@@ -1,10 +1,11 @@
 services:
-  - type: worker
+  - type: web
     name: quos-university
     runtime: python
-    region: singapore
-    buildCommand: pip install requests
-    startCommand: python main.py
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python service.py
+    healthCheckPath: /health
     envVars:
       - key: GEMINI_KEY
         sync: false
@@ -14,3 +15,9 @@ services:
         sync: false
       - key: CHATGPT_KEY
         sync: false
+      - key: LOOP_INTERVAL_SECONDS
+        value: "300"
+      - key: TRAINING_DATA_PATH
+        value: training_data.jsonl
+      - key: STATUS_PATH
+        value: status.json
