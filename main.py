@@ -1,7 +1,7 @@
 """QUOS University self-learning worker.
 
 Run once with ``python main.py --once`` for a smoke test, or without arguments
-for the recurring five-minute background loop.
+for the recurring 30-second background loop.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from saver import ensure_data_file, save_training_example
 from teachers import ask_gemini
 
 
-INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "300"))
+INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "30"))
 STATUS_PATH = Path(os.getenv("STATUS_PATH", "status.json"))
 
 QUESTIONS = [
