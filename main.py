@@ -1,7 +1,7 @@
 """QUOS University self-learning worker.
 
 Run once with ``python main.py --once`` for a smoke test, or without arguments
-for the recurring 120-second background loop using Gemini, DeepSeek, Groq, and a Groq Dean.
+for the recurring 120-second background loop using DeepSeek, Groq, and a Groq Dean.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from typing import Any
 
 from dean import merge_answers
 from saver import ensure_data_file, save_training_example
-from teachers import ask_deepseek, ask_gemini, ask_groq
+from teachers import ask_deepseek, ask_groq
 
 
 INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "120"))
@@ -152,7 +152,6 @@ TEACHER_SYSTEM = (
 )
 
 TEACHER_SPECS = (
-    ("Gemini", ask_gemini),
     ("DeepSeek", ask_deepseek),
     ("Groq", ask_groq),
 )
@@ -160,7 +159,7 @@ TEACHER_SPECS = (
 
 def run_once() -> str:
     question = generate_question()
-    logging.info("New QUOS question for Gemini, DeepSeek, and Groq: %s", question)
+    logging.info("New QUOS question for DeepSeek and Groq: %s", question)
     write_status(state="asking_teachers", question=question, teachers_completed=[])
 
     teacher_answers: dict[str, str] = {}

@@ -1,9 +1,9 @@
-"""Provider adapters for the QUOS multi-teacher pipeline.
+"""Provider adapters for the QUOS two-teacher pipeline.
 
-The worker asks Gemini, DeepSeek, and Groq for independent perspectives. Groq is
-also used for the Dean synthesis because its OpenAI-compatible endpoint is
-already deployed in production. API keys are read only from environment
-variables; no credentials are stored in source.
+The worker asks DeepSeek and Groq for independent perspectives. Groq is also
+used for the Dean synthesis because its OpenAI-compatible endpoint is already
+deployed in production. API keys are read only from environment variables; no
+credentials are stored in source.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 import time
 from typing import Any
-from urllib.parse import quote
 
 import requests
 
@@ -20,7 +19,6 @@ DEFAULT_TIMEOUT = float(os.getenv("HTTP_TIMEOUT_SECONDS", "90"))
 MAX_RETRIES = int(os.getenv("HTTP_MAX_RETRIES", "2"))
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 
 def _post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
@@ -115,30 +113,7 @@ def ask_deepseek(prompt: str, *, system_instruction: str | None = None) -> str:
         url=DEEPSEEK_URL,
         key_names=("DEEPSEEK_API_KEY", "DEEPSEEK_KEY"),
         model_env="DEEPSEEK_MODEL",
-        default_model="deepseek-v4-flash",
+        default_model="deepseek-chat",
         prompt=prompt,
         system_instruction=system_instruction,
     )
-
-
-def ask_gemini(prompt: str, *, system_instruction: str | None = None) -> str:
-    """Ask Gemini through the Gemini REST generateContent endpoint."""
-    api_key = _require_key("GEMINI_API_KEY", "GEMINI_KEY")
-    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip() or "gemini-1.5-flash"
-    url = f"{GEMINI_BASE_URL}/{quote(model, safe='')}:generateContent?key={quote(api_key, safe='')}"
-    contents = [{"role": "user", "parts": [{"text": prompt}]}]
-    payload: dict[str, Any] = {
-        "contents": contents,
-        "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1200},
-    }
-    if system_instruction:
-        payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
-    data = _post_json(url, {"Content-Type": "application/json"}, payload)
-    try:
-        parts = data["candidates"][0]["content"]["parts"]
-        text = "".join(part.get("text", "") for part in parts if isinstance(part, dict))
-    except (KeyError, IndexError, TypeError) as exc:
-        raise RuntimeError(f"Unexpected Gemini response: {data}") from exc
-    if not text.strip():
-        raise RuntimeError("Gemini response contained no text")
-    return text.strip()
