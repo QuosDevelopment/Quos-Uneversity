@@ -18,14 +18,16 @@ MAX_RETRIES = int(os.getenv("HTTP_MAX_RETRIES", "2"))
 
 
 def _post_json(url: str, headers: dict[str, str], payload: dict[str, Any]) -> dict[str, Any]:
-    """POST JSON with small exponential backoff for transient failures."""
+    """POST JSON with small exponential backoff and provider-safe diagnostics."""
     last_error: Exception | None = None
     for attempt in range(MAX_RETRIES + 1):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=DEFAULT_TIMEOUT)
-            response.raise_for_status()
+            if not response.ok:
+                detail = response.text.strip().replace("\\n", " ")[:800]
+                raise RuntimeError(f"HTTP {response.status_code}: {detail}")
             return response.json()
-        except (requests.RequestException, ValueError) as exc:
+        except (requests.RequestException, RuntimeError, ValueError) as exc:
             last_error = exc
             if attempt < MAX_RETRIES:
                 time.sleep(2**attempt)
@@ -52,7 +54,7 @@ def _extract_openai_text(data: dict[str, Any]) -> str:
 def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
     """Ask Gemini through the Gemini REST generateContent endpoint."""
     api_key = _require_key("GEMINI_KEY")
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
     prompt = question if not system_instruction else f"{system_instruction}\n\nUser task:\n{question}"
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     payload = {
@@ -73,7 +75,7 @@ def ask_gemini(question: str, *, system_instruction: str | None = None) -> str:
 def ask_claude(question: str) -> str:
     """Ask Claude through the Anthropic Messages API."""
     api_key = _require_key("CLAUDE_KEY")
-    model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5")
+    model = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929")
     payload = {
         "model": model,
         "max_tokens": 1200,
