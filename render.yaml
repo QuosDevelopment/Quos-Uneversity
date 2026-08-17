@@ -11,6 +11,8 @@ services:
         sync: false
       - key: LOOP_INTERVAL_SECONDS
         value: "30"
+      - key: RESPONSE_DELAY_SECONDS
+        value: "3"
       - key: TRAINING_DATA_PATH
         value: training_data.jsonl
       - key: STATUS_PATH

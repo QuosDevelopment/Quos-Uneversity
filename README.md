@@ -15,7 +15,7 @@
 | `preview.py` | Serves a read-only QUOS-branded status page and health endpoint. |
 | `service.py` | Runs the worker in a background thread while exposing the preview page, making a public web URL possible on Render. |
 
-A cycle is written only after both Gemini calls and the Dean synthesis succeed. Failed cycles remain visible in status and logs and do not create partial training examples.
+A cycle is written only after both Gemini calls and the Dean synthesis succeed. The worker waits three seconds after each Gemini response to reduce burst pressure and rate-limit risk. Failed cycles remain visible in status and logs and do not create partial training examples.
 
 ## Run locally
 
@@ -49,6 +49,7 @@ Then open `http://localhost:8000`. The worker writes `status.json` and `training
 | `GEMINI_KEY` | Gemini API key used by the teacher and Dean. |
 | `GEMINI_MODEL` | Optional Gemini model override; defaults to `gemini-3.6-flash`. |
 | `LOOP_INTERVAL_SECONDS` | Loop interval; defaults to `30` seconds. |
+| `RESPONSE_DELAY_SECONDS` | Delay after each Gemini teacher and Dean response; defaults to `3` seconds. |
 | `HTTP_TIMEOUT_SECONDS` | HTTP timeout for Gemini requests. |
 | `HTTP_MAX_RETRIES` | Number of retries after transient request failures. |
 | `TRAINING_DATA_PATH` | JSONL output path. |

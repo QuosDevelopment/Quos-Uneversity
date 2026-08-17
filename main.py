@@ -23,6 +23,7 @@ from teachers import ask_gemini
 
 
 INTERVAL_SECONDS = int(os.getenv("LOOP_INTERVAL_SECONDS", "30"))
+RESPONSE_DELAY_SECONDS = float(os.getenv("RESPONSE_DELAY_SECONDS", "3"))
 STATUS_PATH = Path(os.getenv("STATUS_PATH", "status.json"))
 
 QUESTIONS = [
@@ -69,6 +70,13 @@ def generate_question() -> str:
     return question
 
 
+def _pause_after_response(label: str) -> None:
+    """Pace provider calls to reduce burst pressure and rate-limit risk."""
+    if RESPONSE_DELAY_SECONDS > 0:
+        logging.info("Waiting %.1fs after %s response", RESPONSE_DELAY_SECONDS, label)
+        _stop_event.wait(RESPONSE_DELAY_SECONDS)
+
+
 def ask_gemini_teacher(question: str) -> str:
     """Ask Gemini for the one teacher perspective used by this cycle."""
     return ask_gemini(
@@ -87,8 +95,10 @@ def run_once() -> str:
     write_status(state="asking_gemini", question=question, teachers_completed=[])
 
     gemini_answer = ask_gemini_teacher(question)
+    _pause_after_response("Gemini teacher")
     write_status(state="dean_synthesis", question=question, teachers_completed=["Gemini"])
     final_answer = merge_answers(question, gemini_answer)
+    _pause_after_response("Gemini Dean")
     save_training_example(question, final_answer)
     write_status(
         state="idle",
@@ -107,7 +117,11 @@ def _handle_signal(signum: int, _frame: Any) -> None:
 
 def run_forever() -> None:
     ensure_data_file()
-    write_status(state="starting", interval_seconds=INTERVAL_SECONDS)
+    write_status(
+        state="starting",
+        interval_seconds=INTERVAL_SECONDS,
+        response_delay_seconds=RESPONSE_DELAY_SECONDS,
+    )
     logging.info("QUOS University Gemini-only worker started; interval=%ss", INTERVAL_SECONDS)
     while not _stop_event.is_set():
         cycle_started = time.monotonic()
