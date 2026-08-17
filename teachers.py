@@ -124,7 +124,7 @@ def ask_deepseek(prompt: str, *, system_instruction: str | None = None) -> str:
 def ask_gemini(prompt: str, *, system_instruction: str | None = None) -> str:
     """Ask Gemini through the Gemini REST generateContent endpoint."""
     api_key = _require_key("GEMINI_API_KEY", "GEMINI_KEY")
-    model = os.getenv("GEMINI_MODEL", "gemini-3.7-flash").strip() or "gemini-3.7-flash"
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip() or "gemini-1.5-flash"
     url = f"{GEMINI_BASE_URL}/{quote(model, safe='')}:generateContent?key={quote(api_key, safe='')}"
     contents = [{"role": "user", "parts": [{"text": prompt}]}]
     payload: dict[str, Any] = {
